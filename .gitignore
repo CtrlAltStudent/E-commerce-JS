@@ -1,8 +1,16 @@
+# Node
 node_modules/
-.env
-.DS_Store
-.vscode/
-dist/
 npm-debug.log
-.db/
-*.sqlite
+package-lock.json
+
+# Environment
+.env
+
+# VSCode
+.vscode/
+
+# OS
+.DS_Store
+
+# Build
+dist/
