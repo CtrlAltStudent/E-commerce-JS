@@ -27,14 +27,6 @@ try {
   console.warn('Auth router not loaded:', err.message);
 }
 
-// categories router (optional - ładuje się jeśli plik istnieje)
-try {
-  const categoriesRouter = require('./routes/categories');
-  app.use('/api/categories', categoriesRouter);
-} catch (err) {
-  console.warn('Categories router not loaded:', err.message);
-}
-
 // health / root
 app.get('/', (req, res) => {
   res.json({ status: 'ok', env: process.env.NODE_ENV || 'development' });
@@ -87,4 +79,3 @@ process.on('SIGTERM', shutdown);
 process.on('unhandledRejection', (reason) => {
   console.error('Unhandled Rejection:', reason);
 });
-

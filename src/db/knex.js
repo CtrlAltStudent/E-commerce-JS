@@ -1,8 +1,5 @@
-// src/db/knex.js
-const path = require('path');
-const config = require(path.resolve(__dirname, '../../knexfile.js'));
-
+﻿const knexConfig = require('../../knexfile'); // zakładamy, że knexfile.js istnieje w repo root
 const env = process.env.NODE_ENV || 'development';
-const knex = require('knex')(config[env]);
-
+const config = knexConfig[env] || knexConfig.development;
+const knex = require('knex')(config);
 module.exports = knex;
