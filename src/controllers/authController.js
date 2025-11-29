@@ -1,51 +1,43 @@
-﻿const knex = require("../db/knex");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
-const secret = process.env.JWT_SECRET || "change_this_secret";
-const jwtExpiresIn = process.env.JWT_EXPIRES_IN || "7d";
+﻿const knex = require('../db/knex'); // upewnij się, że masz poprawny plik db/knex lub src/db/knex
+const bcrypt = require('bcrypt');
 
-function signToken(user) {
-  return jwt.sign(
-    {
-      sub: user.id,
-      email: user.email,
-      role_id: user.role_id || null
-    },
-    secret,
-    { expiresIn: jwtExpiresIn }
-  );
-}
+exports.register = async (req, res, next) => {
+  try {
+    const { email, password, first_name, last_name } = req.body;
+    if (!email || !password) return res.status(400).json({ message: 'email and password required' });
 
-exports.register = async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) return res.status(400).json({ message: "Email and password required" });
-  const existing = await knex("users").where({ email }).first();
-  if (existing) return res.status(409).json({ message: "User already exists" });
+    // sprawdź czy użytkownik już istnieje
+    const exists = await knex('users').where({ email }).first();
+    if (exists) return res.status(400).json({ message: 'User already exists' });
 
-  const hash = bcrypt.hashSync(password, 10);
-  const [id] = await knex("users").insert({ email, password: hash, created_at: new Date(), updated_at: new Date() }).returning("id");
-  const user = await knex("users").where({ id }).first();
-  delete user.password;
-  const token = signToken(user);
-  res.status(201).json({ token, user });
+    const hash = await bcrypt.hash(password, 10);
+    const [user] = await knex('users').insert({
+      email,
+      password_hash: hash,
+      first_name: first_name || null,
+      last_name: last_name || null
+    }).returning(['id','email','first_name','last_name']);
+
+    return res.status(201).json({ user });
+  } catch (err) {
+    next(err);
+  }
 };
 
-exports.login = async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) return res.status(400).json({ message: "Email and password required" });
-  const user = await knex("users").where({ email }).first();
-  if (!user) return res.status(401).json({ message: "Invalid credentials" });
-  const ok = bcrypt.compareSync(password, user.password || "");
-  if (!ok) return res.status(401).json({ message: "Invalid credentials" });
-  delete user.password;
-  const token = signToken(user);
-  res.json({ token, user });
-};
+exports.login = async (req, res, next) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ message: 'email and password required' });
 
-exports.me = async (req, res) => {
-  // requireAuth middleware powinien ustawić req.user
-  if (!req.user) return res.status(401).json({ message: "Not authenticated" });
-  const user = req.user;
-  delete user.password;
-  res.json({ user });
+    const user = await knex('users').where({ email }).first();
+    if (!user) return res.status(400).json({ message: 'Invalid credentials' });
+
+    const ok = await bcrypt.compare(password, user.password_hash || user.password);
+    if (!ok) return res.status(400).json({ message: 'Invalid credentials' });
+
+    // na razie zwracamy user bez tokena — token dodamy w dalszych krokach
+    return res.json({ user: { id: user.id, email: user.email, first_name: user.first_name, last_name: user.last_name } });
+  } catch (err) {
+    next(err);
+  }
 };

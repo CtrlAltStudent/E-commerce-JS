@@ -1,65 +1,59 @@
-﻿/*
-  src/controllers/productsController.js
-  Bezpieczny CommonJS export — używa module.exports = {...}
-*/
-const categories = require('../models/categories');
+﻿const knex = require("../db/knex");
 
-const parseNumber = (v) => {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : null;
-};
-
-async function getAll(req, res, next) {
+// get all categories
+exports.getAll = async (req, res, next) => {
   try {
-    const limit = req.query.limit ? parseInt(req.query.limit, 10) : undefined;
-    const offset = req.query.offset ? parseInt(req.query.offset, 10) : undefined;
-    const rows = await categories.findAll({ limit, offset });
+    const rows = await knex("categories").select("id","name","slug","description","created_at","updated_at").orderBy("id");
     res.json(rows);
-  } catch (err) { next(err); }
-}
-
-async function getOne(req, res, next) {
-  try {
-    const category = await categories.findById(req.params.id);
-    if (!category) return res.status(404).json({ message: 'category not found' });
-    res.json(category);
-  } catch (err) { next(err); }
-}
-
-async function create(req, res, next) {
-  try {
-    const body = req.body || {};
-    if (!body.name) return res.status(400).json({ message: 'Name is required' });
-    if (body.price !== undefined && parseNumber(body.price) === null) {
-      return res.status(400).json({ message: 'Price must be a number' });
-    }
-    const created = await categories.create(body);
-    res.status(201).json(created);
-  } catch (err) { next(err); }
-}
-
-async function update(req, res, next) {
-  try {
-    const body = req.body || {};
-    const updated = await categories.update(req.params.id, body);
-    if (!updated) return res.status(404).json({ message: 'category not found or no data to update' });
-    res.json(updated);
-  } catch (err) { next(err); }
-}
-
-async function remove(req, res, next) {
-  try {
-    const deleted = await categories.remove(req.params.id);
-    if (!deleted) return res.status(404).json({ message: 'category not found' });
-    res.status(204).send();
-  } catch (err) { next(err); }
-}
-
-module.exports = {
-  getAll,
-  getOne,
-  create,
-  update,
-  remove
+  } catch (err) {
+    next(err);
+  }
 };
 
+// get one category
+exports.getOne = async (req, res, next) => {
+  try {
+    const id = parseInt(req.params.id,10);
+    const row = await knex("categories").where({ id }).first();
+    if (!row) return res.status(404).json({ message: "Category not found" });
+    res.json(row);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// create
+exports.create = async (req, res, next) => {
+  try {
+    const { name, slug, description } = req.body;
+    const [created] = await knex("categories").insert({ name, slug, description }).returning("*");
+    res.status(201).json(created);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// update
+exports.update = async (req, res, next) => {
+  try {
+    const id = parseInt(req.params.id,10);
+    const { name, slug, description } = req.body;
+    const [updated] = await knex("categories").where({ id }).update({ name, slug, description, updated_at: knex.fn.now() }).returning("*");
+    if (!updated) return res.status(404).json({ message: "Category not found or no changes" });
+    res.json(updated);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// remove
+exports.remove = async (req, res, next) => {
+  try {
+    const id = parseInt(req.params.id,10);
+    const del = await knex("categories").where({ id }).del();
+    if (!del) return res.status(404).json({ message: "Category not found" });
+    res.json({ message: "Deleted" });
+  } catch (err) {
+    next(err);
+  }
+};
