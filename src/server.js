@@ -1,12 +1,86 @@
-﻿require("dotenv").config();
-const express = require("express");
+﻿// src/server.js
+require('dotenv').config();
+
+const express = require('express');
+const cors = require('cors');
+
 const app = express();
-const productsRouter = require("./routes/products");
 
+// middlewares
+app.use(cors()); // przydatne podczas developmentu (frontend)
 app.use(express.json());
-app.use("/api/products", productsRouter);
+app.use(express.urlencoded({ extended: true }));
 
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
+// routes (upewnij się że pliki istnieją pod tymi ścieżkami)
+try {
+  const productsRouter = require('./routes/products');
+const categoriesRouter = require('./routes/categories');
+  app.use('/api/products', productsRouter);
+app.use('/api/categories', categoriesRouter);
+} catch (err) {
+  console.warn('Products router not loaded:', err.message);
+}
+
+try {
+  const authRouter = require('./routes/auth');
+  app.use('/api/auth', authRouter);
+} catch (err) {
+  // jeśli nie masz auth jeszcze, to tylko ostrzeżenie
+  console.warn('Auth router not loaded:', err.message);
+}
+
+// health / root
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', env: process.env.NODE_ENV || 'development' });
+});
+
+// error handler - zawsze na końcu
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err && err.stack ? err.stack : err);
+  const status = err && err.status ? err.status : 500;
+  res.status(status).json({
+    error: {
+      message: err && err.message ? err.message : 'Internal Server Error',
+      // nie ujawniać stacka w produkcji
+      ...(process.env.NODE_ENV !== 'production' ? { stack: err.stack } : {})
+    }
+  });
+});
+
+// start server
+const port = parseInt(process.env.PORT, 10) || 3000;
+const server = app.listen(port, () => {
   console.log(`Server listening on http://localhost:${port}`);
 });
+
+// defend against EADDRINUSE nicely
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`Port ${port} is already in use. Try changing PORT env var (e.g. export PORT=4000) or kill the process using that port.`);
+    process.exit(1);
+  } else {
+    console.error('Server error:', err);
+    process.exit(1);
+  }
+});
+
+// graceful shutdown
+const shutdown = () => {
+  console.log('Shutting down server...');
+  server.close(() => {
+    process.exit(0);
+  });
+  // force exit after 5s
+  setTimeout(() => process.exit(1), 5000);
+};
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
+
+// catch unhandled rejections
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled Rejection:', reason);
+});
+
+
+
