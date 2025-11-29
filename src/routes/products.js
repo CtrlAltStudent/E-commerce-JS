@@ -1,25 +1,12 @@
-﻿const express = require("express");
+// src/routes/products.js
+const express = require('express');
 const router = express.Router();
-const db = require("../db");
+const ctrl = require('../controllers/productsController');
 
-router.get("/", async (req, res) => {
-  try {
-    const products = await db("products").select("*");
-    res.json(products);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
-
-router.get("/:id", async (req, res) => {
-  try {
-    const p = await db("products").where("id", req.params.id).first();
-    if (!p) return res.status(404).json({ error: "Not found" });
-    res.json(p);
-  } catch (err) {
-    res.status(500).json({ error: "Server error" });
-  }
-});
+router.get('/', ctrl.getAll);
+router.get('/:id', ctrl.getOne);
+router.post('/', ctrl.create);
+router.put('/:id', ctrl.update);
+router.delete('/:id', ctrl.remove);
 
 module.exports = router;
