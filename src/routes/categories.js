@@ -1,15 +1,16 @@
-﻿const express = require('express');
+﻿const express = require("express");
 const router = express.Router();
-const ctrl = require('../controllers/productsController');
-const auth = require('../middleware/auth');
+const ctrl = require("../controllers/categoriesController");
 
-router.get('/', ctrl.getAll);
-router.get('/:id', ctrl.getOne);
-
-// zabezpieczone trasy:
-router.post('/', auth, ctrl.create);
-router.put('/:id', auth, ctrl.update);
-router.delete('/:id', auth, ctrl.remove);
+// GET /api/categories
+router.get("/", ctrl.getAll);
+// GET /api/categories/:id
+router.get("/:id", ctrl.getOne);
+// POST /api/categories
+router.post("/", ctrl.create);
+// PUT /api/categories/:id
+router.put("/:id", ctrl.update);
+// DELETE /api/categories/:id
+router.delete("/:id", ctrl.remove);
 
 module.exports = router;
-
