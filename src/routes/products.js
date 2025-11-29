@@ -1,14 +1,27 @@
-const express = require('express');
+﻿const express = require("express");
 const router = express.Router();
-const ctrl = require('../controllers/productsController');
-const auth = require('../middleware/auth');
+const knex = require("../db/knex"); // zakładam, że masz ./src/db/knex.js lub analogiczny export
 
-router.get('/', ctrl.getAll);
-router.get('/:id', ctrl.getOne);
+// GET /api/products
+router.get("/", async (req, res, next) => {
+  try {
+    const products = await knex("products").select("id","sku","name","description","price","stock","is_active","created_at","updated_at").orderBy("id");
+    res.json(products);
+  } catch (err) {
+    next(err);
+  }
+});
 
-// zabezpieczone trasy:
-router.post('/', auth, ctrl.create);
-router.put('/:id', auth, ctrl.update);
-router.delete('/:id', auth, ctrl.remove);
+// GET /api/products/:id
+router.get("/:id", async (req, res, next) => {
+  try {
+    const id = parseInt(req.params.id,10);
+    const product = await knex("products").where({ id }).first();
+    if (!product) return res.status(404).json({ message: "Product not found" });
+    res.json(product);
+  } catch (err) {
+    next(err);
+  }
+});
 
 module.exports = router;
