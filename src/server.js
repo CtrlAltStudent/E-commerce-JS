@@ -7,7 +7,9 @@ const cors = require('cors');
 const app = express();
 
 // middlewares
-app.use(cors()); // przydatne podczas developmentu (frontend)
+app.use(cors({
+  origin: 'http://localhost:5173'
+})); // przydatne podczas developmentu (frontend)
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -17,6 +19,13 @@ try {
   app.use('/api/products', productsRouter);
 } catch (err) {
   console.warn('Products router not loaded:', err.message);
+}
+
+try {
+  const ordersRouter = require('./routes/orders');
+  app.use('/api/orders', ordersRouter);
+} catch (err) {
+  console.warn('Orders router not loaded:', err.message);
 }
 
 try {
