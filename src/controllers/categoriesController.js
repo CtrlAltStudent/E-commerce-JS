@@ -1,58 +1,76 @@
-﻿const knex = require("../db/knex");
+﻿const Categories = require('../models/categories');
 
-// get all categories
+// GET /api/categories
 exports.getAll = async (req, res, next) => {
   try {
-    const rows = await knex("categories").select("id","name","slug","description","created_at","updated_at").orderBy("id");
+    const rows = await Categories.findAll();
     res.json(rows);
   } catch (err) {
     next(err);
   }
 };
 
-// get one category
+// GET /api/categories/:id
 exports.getOne = async (req, res, next) => {
   try {
-    const id = parseInt(req.params.id,10);
-    const row = await knex("categories").where({ id }).first();
-    if (!row) return res.status(404).json({ message: "Category not found" });
+    const id = Number(req.params.id);
+    const row = await Categories.findById(id);
+
+    if (!row) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+
     res.json(row);
   } catch (err) {
     next(err);
   }
 };
 
-// create
+// POST /api/categories
 exports.create = async (req, res, next) => {
   try {
-    const { name, slug, description } = req.body;
-    const [created] = await knex("categories").insert({ name, slug, description }).returning("*");
+    const { name, description } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ message: 'Name is required' });
+    }
+
+    const created = await Categories.create({ name, description });
     res.status(201).json(created);
   } catch (err) {
     next(err);
   }
 };
 
-// update
+// PUT /api/categories/:id
 exports.update = async (req, res, next) => {
   try {
-    const id = parseInt(req.params.id,10);
-    const { name, slug, description } = req.body;
-    const [updated] = await knex("categories").where({ id }).update({ name, slug, description, updated_at: knex.fn.now() }).returning("*");
-    if (!updated) return res.status(404).json({ message: "Category not found or no changes" });
+    const id = Number(req.params.id);
+    const updated = await Categories.update(id, req.body);
+
+    if (!updated) {
+      return res
+        .status(404)
+        .json({ message: 'Category not found or no changes' });
+    }
+
     res.json(updated);
   } catch (err) {
     next(err);
   }
 };
 
-// remove
+// DELETE /api/categories/:id
 exports.remove = async (req, res, next) => {
   try {
-    const id = parseInt(req.params.id,10);
-    const del = await knex("categories").where({ id }).del();
-    if (!del) return res.status(404).json({ message: "Category not found" });
-    res.json({ message: "Deleted" });
+    const id = Number(req.params.id);
+    const deleted = await Categories.remove(id);
+
+    if (!deleted) {
+      return res.status(404).json({ message: 'Category not found' });
+    }
+
+    res.status(204).send();
   } catch (err) {
     next(err);
   }

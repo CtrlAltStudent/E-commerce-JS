@@ -1,26 +1,72 @@
-﻿const knex = require("../db/knex");
+﻿const knex = require('../db/knex');
 
 module.exports = {
+  /**
+   * Get all categories
+   */
   findAll: (opts = {}) => {
-    const q = knex('categories').select('*').orderBy('name');
-    if (opts.limit) q.limit(opts.limit);
-    if (opts.offset) q.offset(opts.offset);
-    return q;
+    const query = knex('categories')
+      .select('id', 'name', 'description', 'created_at', 'updated_at')
+      .orderBy('id', 'asc');
+
+    if (opts.limit) {
+      query.limit(Number(opts.limit));
+    }
+
+    if (opts.offset) {
+      query.offset(Number(opts.offset));
+    }
+
+    return query;
   },
 
-  findById: (id) => knex('categories').where({ id }).first(),
+  /**
+   * Get category by id
+   */
+  findById: (id) => {
+    return knex('categories')
+      .where({ id })
+      .first();
+  },
 
-  findBySlug: (slug) => knex('categories').where({ slug }).first(),
+  /**
+   * Create category
+   */
+  create: async ({ name, description }) => {
+    const [row] = await knex('categories')
+      .insert({
+        name,
+        description
+      })
+      .returning('*');
 
-  create: async ({ name, slug, description }) => {
-    const [row] = await knex('categories').insert({ name, slug, description }).returning('*');
     return row;
   },
 
-  update: async (id, data) => {
-    const [row] = await knex('categories').where({ id }).update(data).returning('*');
+  /**
+   * Update category
+   */
+  update: async (id, { name, description }) => {
+    const [row] = await knex('categories')
+      .where({ id })
+      .update(
+        {
+          name,
+          description,
+          updated_at: knex.fn.now()
+        }
+      )
+      .returning('*');
+
     return row;
   },
 
-  remove: (id) => knex('categories').where({ id }).del()
+  /**
+   * Delete category
+   */
+  remove: async (id) => {
+    return knex('categories')
+      .where({ id })
+      .del();
+  }
 };

@@ -1,113 +1,94 @@
 const knex = require('../db/knex');
 
-const generateOrderNumber = () => {
-  const date = new Date();
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  const rand = Math.floor(Math.random() * 10000);
+function generateOrderNumber() {
+  const now = new Date();
+  const datePart = now.toISOString().slice(0, 10).replace(/-/g, '');
+  const randomPart = Math.floor(1000 + Math.random() * 9000);
+  return `ORD-${datePart}-${randomPart}`;
+}
 
-  return `ORD-${y}${m}${d}-${rand}`;
-};
+module.exports = {
+  async create(items) {
+    return await knex.transaction(async (trx) => {
+      const productIds = items.map(i => i.product_id);
 
+      const products = await trx('products')
+        .whereIn('id', productIds)
+        .select('id', 'price', 'stock');
 
-exports.create = async (data) => {
-  const { items } = data;
-
-  if (!Array.isArray(items) || items.length === 0) {
-    throw { status: 400, message: 'Order items are required' };
-  }
-
-  return knex.transaction(async trx => {
-    // 1. Pobierz produkty
-    const productIds = items.map(i => i.product_id);
-
-    const products = await trx('products')
-      .whereIn('id', productIds)
-      .select('id', 'price', 'stock');
-
-    if (products.length !== items.length) {
-      throw { status: 400, message: 'One or more products not found' };
-    }
-
-    // 2. Sprawdź stock
-    for (const item of items) {
-      const product = products.find(p => p.id === item.product_id);
-
-      if (product.stock < item.quantity) {
-        throw {
-          status: 400,
-          message: `Not enough stock for product ${product.id}`
-        };
+      // 🔴 walidacja istnienia produktów
+      if (products.length !== items.length) {
+        throw new Error('One or more products not found');
       }
-    }
 
-    // 3. Oblicz total
-    let total = 0;
-    const orderItems = items.map(item => {
-      const product = products.find(p => p.id === item.product_id);
-      const lineTotal = product.price * item.quantity;
-      total += lineTotal;
+      let total = 0;
+
+      const pricedItems = items.map(i => {
+        const p = products.find(pp => pp.id === i.product_id);
+
+        const qty = Number(i.quantity);
+        const price = Number(p.price);
+        const stock = Number(p.stock);
+
+        if (qty <= 0) {
+          throw new Error('Quantity must be positive');
+        }
+
+        // 🔴 sprawdzenie stanu magazynowego
+        if (stock < qty) {
+          throw new Error(`Insufficient stock for product ${i.product_id}`);
+        }
+
+        const lineTotal = price * qty;
+        total += lineTotal;
+
+        return {
+          product_id: i.product_id,
+          quantity: qty,
+          unit_price: price,
+          line_total: lineTotal
+        };
+      });
+
+      // 🔴 utworzenie zamówienia
+      const [order] = await trx('orders')
+        .insert({
+          order_number: generateOrderNumber(),
+          status: 'new',
+          total
+        })
+        .returning('*');
+
+      // 🔴 zapis pozycji
+      await trx('order_items').insert(
+        pricedItems.map(pi => ({
+          order_id: order.id,
+          ...pi
+        }))
+      );
+
+      // 🔴 aktualizacja stanów magazynowych
+      for (const pi of pricedItems) {
+        await trx('products')
+          .where({ id: pi.product_id })
+          .decrement('stock', pi.quantity);
+      }
 
       return {
-        product_id: product.id,
-        quantity: item.quantity,
-        unit_price: product.price,
-        line_total: lineTotal
+        ...order,
+        items: pricedItems
       };
     });
+  },
 
-    // 4. Utwórz order
-    const [order] = await trx('orders')
-    .insert({
-        order_number: generateOrderNumber(),
-        total,
-        status: 'created'
-    })
-    .returning('*');
+  async findById(id) {
+    const order = await knex('orders').where({ id }).first();
+    if (!order) return null;
 
+    const items = await knex('order_items')
+      .where({ order_id: id })
+      .select('product_id', 'quantity', 'unit_price', 'line_total');
 
-    // 5. Utwórz order_items
-    const itemsToInsert = orderItems.map(i => ({
-      order_id: order.id,
-      ...i
-    }));
-
-    await trx('order_items').insert(itemsToInsert);
-
-    // 6. Zmniejsz stock
-    for (const item of items) {
-      await trx('products')
-        .where({ id: item.product_id })
-        .decrement('stock', item.quantity);
-    }
-
-    // 7. Zwróć zamówienie
-    return {
-      ...order,
-      items: orderItems
-    };
-  });
-};
-
-exports.findById = async (id) => {
-  const order = await knex('orders')
-    .where({ id })
-    .first();
-
-  if (!order) return null;
-
-  const items = await knex('order_items')
-    .where({ order_id: id })
-    .select(
-      'product_id',
-      'quantity',
-      'unit_price',
-      'line_total'
-    );
-
-  return {
-    ...order,
-    items
-  };
+    return { ...order, items };
+  }
 };
