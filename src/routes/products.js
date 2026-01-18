@@ -1,20 +1,22 @@
 ﻿const express = require('express');
 const router = express.Router();
 
-const productsController = require('../controllers/productsController');
+const ctrl = require('../controllers/productsController');
 const validate = require('../middleware/validate');
 const { createProduct, updateProduct } = require('../validators/products');
+const upload = require('../middleware/upload');
+const productImagesController = require('../controllers/productImagesController');
 
 // GET
-router.get('/', productsController.getAll);
-router.get('/:id', productsController.getOne);
+router.get('/', ctrl.getAll);
+router.get('/:id', ctrl.getOne);
 
 // POST
 router.post(
   '/',
   createProduct,
   validate,
-  productsController.create
+  ctrl.create
 );
 
 // PUT
@@ -22,10 +24,18 @@ router.put(
   '/:id',
   updateProduct,
   validate,
-  productsController.update
+  ctrl.update
 );
 
 // DELETE
-router.delete('/:id', productsController.remove);
+router.delete('/:id', ctrl.remove);
+
+// POST /api/products/:id/images
+router.post(
+  '/:id/images',
+  upload.array('images', 5),
+  productImagesController.upload
+);
+
 
 module.exports = router;

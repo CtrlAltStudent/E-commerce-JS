@@ -2,6 +2,7 @@
 const router = express.Router();
 const ctrl = require("../controllers/categoriesController");
 
+router.get('/tree', ctrl.getTree);
 // GET /api/categories
 router.get("/", ctrl.getAll);
 // GET /api/categories/:id
