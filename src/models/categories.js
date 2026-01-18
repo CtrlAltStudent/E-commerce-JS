@@ -1,72 +1,68 @@
 ﻿const knex = require('../db/knex');
 
+/**
+ * Build category tree from flat list
+ */
+async function getTree() {
+  const categories = await knex('categories')
+    .select('id', 'name', 'description', 'parent_id')
+    .orderBy('name');
+
+  const map = {};
+  const tree = [];
+
+  categories.forEach(cat => {
+    map[cat.id] = { ...cat, children: [] };
+  });
+
+  categories.forEach(cat => {
+    if (cat.parent_id) {
+      map[cat.parent_id]?.children.push(map[cat.id]);
+    } else {
+      tree.push(map[cat.id]);
+    }
+  });
+
+  return tree;
+}
+
 module.exports = {
-  /**
-   * Get all categories
-   */
-  findAll: (opts = {}) => {
+  findAll(opts = {}) {
     const query = knex('categories')
-      .select('id', 'name', 'description', 'created_at', 'updated_at')
+      .select('id', 'name', 'description', 'parent_id', 'created_at', 'updated_at')
       .orderBy('id', 'asc');
 
-    if (opts.limit) {
-      query.limit(Number(opts.limit));
-    }
-
-    if (opts.offset) {
-      query.offset(Number(opts.offset));
-    }
+    if (opts.limit) query.limit(Number(opts.limit));
+    if (opts.offset) query.offset(Number(opts.offset));
 
     return query;
   },
 
-  /**
-   * Get category by id
-   */
-  findById: (id) => {
-    return knex('categories')
-      .where({ id })
-      .first();
+  findById(id) {
+    return knex('categories').where({ id }).first();
   },
 
-  /**
-   * Create category
-   */
-  create: async ({ name, description }) => {
-    const [row] = await knex('categories')
-      .insert({
-        name,
-        description
+  create({ name, description, parent_id = null }) {
+    return knex('categories')
+      .insert({ name, description, parent_id })
+      .returning('*')
+      .then(r => r[0]);
+  },
+
+  update(id, data) {
+    return knex('categories')
+      .where({ id })
+      .update({
+        ...data,
+        updated_at: knex.fn.now()
       })
-      .returning('*');
-
-    return row;
+      .returning('*')
+      .then(r => r[0]);
   },
 
-  /**
-   * Update category
-   */
-  update: async (id, { name, description }) => {
-    const [row] = await knex('categories')
-      .where({ id })
-      .update(
-        {
-          name,
-          description,
-          updated_at: knex.fn.now()
-        }
-      )
-      .returning('*');
-
-    return row;
+  remove(id) {
+    return knex('categories').where({ id }).del();
   },
 
-  /**
-   * Delete category
-   */
-  remove: async (id) => {
-    return knex('categories')
-      .where({ id })
-      .del();
-  }
+  getTree
 };

@@ -7,13 +7,17 @@ exports.createProduct = [
     .withMessage('Name is required'),
 
   body('price')
-    .isFloat({ min: 0 })
+    .isFloat({ gt: 0 })
     .withMessage('Price must be a positive number'),
 
   body('stock')
     .optional()
     .isInt({ min: 0 })
-    .withMessage('Stock must be an integer >= 0')
+    .withMessage('Stock must be an integer >= 0'),
+
+  body('category_id')
+    .isInt({ gt: 0 })
+    .withMessage('category_id is required and must be a positive integer')
 ];
 
 exports.updateProduct = [
@@ -23,11 +27,16 @@ exports.updateProduct = [
 
   body('price')
     .optional()
-    .isFloat({ min: 0 })
+    .isFloat({ gt: 0 })
     .withMessage('Price must be a positive number'),
 
   body('stock')
     .optional()
     .isInt({ min: 0 })
-    .withMessage('Stock must be an integer >= 0')
+    .withMessage('Stock must be an integer >= 0'),
+
+  body('category_id')
+    .optional()
+    .isInt({ gt: 0 })
+    .withMessage('category_id must be a positive integer')
 ];

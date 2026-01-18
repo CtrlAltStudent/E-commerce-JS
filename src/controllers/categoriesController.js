@@ -75,3 +75,12 @@ exports.remove = async (req, res, next) => {
     next(err);
   }
 };
+
+exports.getTree = async (req, res, next) => {
+  try {
+    const tree = await Categories.getTree();
+    res.json(tree);
+  } catch (err) {
+    next(err);
+  }
+};

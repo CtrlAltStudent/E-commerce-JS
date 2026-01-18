@@ -13,13 +13,22 @@
         style="margin-bottom: 10px"
       >
         <strong>{{ item.name }}</strong>
-        — {{ item.quantity }} × {{ item.price }} zł
-        = {{ item.quantity * item.price }} zł
 
-        <button @click="cart.removeFromCart(item.product_id)">
-          Remove
-        </button>
-      </div>
+        <div style="margin-top: 5px">
+          <button @click="cart.decrease(item.product_id)">−</button>
+
+          <span style="margin: 0 10px">
+            {{ item.quantity }}
+          </span>
+
+          <button @click="cart.increase(item.product_id)">+</button>
+        </div>
+
+  <div style="margin-top: 5px">
+    {{ item.quantity }} × {{ item.price }} zł =
+    <strong>{{ item.quantity * item.price }} zł</strong>
+  </div>
+</div>
 
       <hr />
 

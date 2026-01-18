@@ -12,14 +12,19 @@ app.use(cors({
 })); // przydatne podczas developmentu (frontend)
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+  const path = require('path');
+
+  app.use(
+    '/uploads',
+    express.static(path.join(__dirname, '..', 'uploads'))
+  );
+
+
 
 // routes (upewnij się że pliki istnieją pod tymi ścieżkami)
-try {
   const productsRouter = require('./routes/products');
   app.use('/api/products', productsRouter);
-} catch (err) {
-  console.warn('Products router not loaded:', err.message);
-}
+
 
 try {
   const ordersRouter = require('./routes/orders');

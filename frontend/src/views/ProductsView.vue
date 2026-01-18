@@ -2,12 +2,20 @@
   <div>
     <h1>Products</h1>
 
+    <!-- MENU KATEGORII -->
+    <CategoryMenu @select="onCategorySelect" />
+
     <p v-if="loading">Loading...</p>
     <p v-if="error" style="color: red">{{ error }}</p>
 
     <ul v-if="products.length">
       <li v-for="product in products" :key="product.id">
-        <strong>{{ product.name }}</strong>
+        <strong
+          style="cursor: pointer; text-decoration: underline"
+          @click="$router.push(`/products/${product.id}`)"
+        >
+          {{ product.name }}
+        </strong>
         — {{ product.price }} zł
 
         <input
@@ -15,7 +23,7 @@
           min="1"
           :max="product.stock"
           v-model.number="quantities[product.id]"
-          style="width: 60px; margin-left: 10px;"
+          style="width: 60px; margin-left: 10px"
         />
 
         <button @click="addToCart(product)">
@@ -23,33 +31,45 @@
         </button>
       </li>
     </ul>
+
+    <p v-if="!loading && products.length === 0">
+      Brak produktów w tej kategorii
+    </p>
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
-import { useCartStore } from '../stores/cartStore'
+import { ref, onMounted } from 'vue'
+import { useCartStore } from '@/stores/cartStore'
+import CategoryMenu from '@/components/CategoryMenu.vue'
+
+const cart = useCartStore()
 
 const products = ref([])
 const quantities = ref({})
-const cart = useCartStore()
+const selectedCategory = ref(null)
+
 const loading = ref(false)
 const error = ref(null)
 
-const addToCart = (product) => {
-  const qty = quantities.value[product.id] || 1
-  cart.addToCart(product, qty)
-}
-
-onMounted(async () => {
+const fetchProducts = async () => {
   loading.value = true
+  error.value = null
+
   try {
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/products`)
+    let url = `${import.meta.env.VITE_API_URL}/api/products`
+
+    if (selectedCategory.value) {
+      url += `?category_id=${selectedCategory.value}`
+    }
+
+    const res = await fetch(url)
     if (!res.ok) throw new Error('Failed to fetch products')
 
     products.value = await res.json()
 
-    // domyślna ilość = 1 dla każdego produktu
+    // reset ilości
+    quantities.value = {}
     products.value.forEach(p => {
       quantities.value[p.id] = 1
     })
@@ -58,5 +78,17 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
-})
+}
+
+const onCategorySelect = (categoryId) => {
+  selectedCategory.value = categoryId
+  fetchProducts()
+}
+
+const addToCart = (product) => {
+  const qty = quantities.value[product.id] || 1
+  cart.addToCart(product, qty)
+}
+
+onMounted(fetchProducts)
 </script>
