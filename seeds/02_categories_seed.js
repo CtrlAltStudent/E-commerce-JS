@@ -1,17 +1,22 @@
-﻿exports.seed = async function(knex) {
-  // Usuń dane z tabel (tylko demo, w prawdziwym sklepie nie robimy .del() w seedach produkcyjnych)
-  await knex("product_categories").del();
-  await knex("categories").del();
+﻿exports.seed = async function (knex) {
+  await knex('categories').del();
 
-  // Wstaw przykładowe kategorie
-  const inserted = await knex("categories")
-    .insert([
-      { name: "Electronics", slug: "electronics", description: "Phones, laptops, gadgets" },
-      { name: "Books", slug: "books", description: "Books and magazines" },
-      { name: "Home", slug: "home", description: "Furniture and home accessories" },
-      { name: "Sports", slug: "sports", description: "Sport equipment and clothing" }
-    ])
-    .returning("*");
-
-  console.log("Categories seed inserted:", inserted.length);
+  await knex('categories').insert([
+    {
+      name: 'Laptopy',
+      description: 'Laptopy i notebooki'
+    },
+    {
+      name: 'Procesory',
+      description: 'Procesory do komputerów'
+    },
+    {
+      name: 'Karty graficzne',
+      description: 'GPU do gier i pracy'
+    },
+    {
+      name: 'Płyty główne',
+      description: 'Płyty główne ATX i mATX'
+    }
+  ]);
 };
