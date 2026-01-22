@@ -3,102 +3,76 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 
 const app = express();
 
-// middlewares
+/* =======================
+   MIDDLEWARES
+======================= */
 app.use(cors({
   origin: 'http://localhost:5173'
-})); // przydatne podczas developmentu (frontend)
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-  const path = require('path');
-
-  app.use(
-    '/uploads',
-    express.static(path.join(__dirname, '..', 'uploads'))
-  );
 
 
+/* =======================
+   ROUTES
+======================= */
+const productsRouter = require('./routes/products');
+app.use('/api/products', productsRouter);
 
-// routes (upewnij się że pliki istnieją pod tymi ścieżkami)
-  const productsRouter = require('./routes/products');
-  app.use('/api/products', productsRouter);
+const ordersRouter = require('./routes/orders');
+app.use('/api/orders', ordersRouter);
 
+const authRouter = require('./routes/auth');
+app.use('/api/auth', authRouter);
 
-try {
-  const ordersRouter = require('./routes/orders');
-  app.use('/api/orders', ordersRouter);
-} catch (err) {
-  console.warn('Orders router not loaded:', err.message);
-}
+const categoriesRouter = require('./routes/categories');
+app.use('/api/categories', categoriesRouter);
 
-try {
-  const authRouter = require('./routes/auth');
-  app.use('/api/auth', authRouter);
-} catch (err) {
-  // jeśli nie masz auth jeszcze, to tylko ostrzeżenie
-  console.warn('Auth router not loaded:', err.message);
-}
-
-// categories router (optional - ładuje się jeśli plik istnieje)
-try {
-  const categoriesRouter = require('./routes/categories');
-  app.use('/api/categories', categoriesRouter);
-} catch (err) {
-  console.warn('Categories router not loaded:', err.message);
-}
-
-// health / root
+/* =======================
+   HEALTHCHECK
+======================= */
 app.get('/', (req, res) => {
-  res.json({ status: 'ok', env: process.env.NODE_ENV || 'development' });
+  res.json({
+    status: 'ok',
+    env: process.env.NODE_ENV || 'development'
+  });
 });
 
-// error handler - zawsze na końcu
+/* =======================
+   ERROR HANDLER
+======================= */
 app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err && err.stack ? err.stack : err);
-  const status = err && err.status ? err.status : 500;
-  res.status(status).json({
+  console.error('Unhandled error:', err);
+  res.status(err.status || 500).json({
     error: {
-      message: err && err.message ? err.message : 'Internal Server Error',
-      // nie ujawniać stacka w produkcji
-      ...(process.env.NODE_ENV !== 'production' ? { stack: err.stack } : {})
+      message: err.message || 'Internal Server Error',
+      ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
     }
   });
 });
 
-// start server
-const port = parseInt(process.env.PORT, 10) || 3000;
+/* =======================
+   START SERVER
+======================= */
+const port = Number(process.env.PORT) || 3000;
 const server = app.listen(port, () => {
   console.log(`Server listening on http://localhost:${port}`);
 });
 
-// defend against EADDRINUSE nicely
-server.on('error', (err) => {
-  if (err.code === 'EADDRINUSE') {
-    console.error(`Port ${port} is already in use. Try changing PORT env var (e.g. export PORT=4000) or kill the process using that port.`);
-    process.exit(1);
-  } else {
-    console.error('Server error:', err);
-    process.exit(1);
-  }
-});
-
-// graceful shutdown
+/* =======================
+   GRACEFUL SHUTDOWN
+======================= */
 const shutdown = () => {
   console.log('Shutting down server...');
-  server.close(() => {
-    process.exit(0);
-  });
-  // force exit after 5s
+  server.close(() => process.exit(0));
   setTimeout(() => process.exit(1), 5000);
 };
 
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
-
-// catch unhandled rejections
-process.on('unhandledRejection', (reason) => {
-  console.error('Unhandled Rejection:', reason);
-});
-
+process.on('unhandledRejection', shutdown);

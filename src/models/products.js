@@ -1,4 +1,3 @@
-// src/models/products.js
 const knex = require('../db/knex');
 
 module.exports = {
