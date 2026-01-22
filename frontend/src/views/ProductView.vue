@@ -4,6 +4,14 @@
     <p v-if="error" style="color:red">{{ error }}</p>
 
     <div v-if="product">
+      <!-- OBRAZ PRODUKTU -->
+      <img
+        :src="imageSrc"
+        :alt="product.name"
+        @error="onImageError"
+        style="max-width: 400px; display: block; margin-bottom: 20px"
+      />
+
       <h1>{{ product.name }}</h1>
 
       <p><strong>Price:</strong> {{ product.price }} zł</p>
@@ -30,7 +38,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useCartStore } from '@/stores/cartStore'
 
@@ -39,8 +47,20 @@ const cart = useCartStore()
 
 const product = ref(null)
 const quantity = ref(1)
+
 const loading = ref(false)
 const error = ref(null)
+
+// ŚCIEŻKA DO OBRAZU NA PODSTAWIE NAZWY PRODUKTU
+const imageSrc = computed(() => {
+  if (!product.value) return ''
+  return `/images/products/large/${product.value.name}.jpg`
+})
+
+// FALLBACK, JEŚLI BRAK OBRAZKA
+const onImageError = (event) => {
+  event.target.src = '/images/no-image.jpg'
+}
 
 onMounted(async () => {
   loading.value = true

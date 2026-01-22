@@ -1,5 +1,7 @@
 // src/controllers/productsController.js
 const Products = require('../models/products');
+const ProductImages = require('../models/productImages');
+
 
 exports.getAll = async (req, res, next) => {
   try {
@@ -59,6 +61,16 @@ exports.remove = async (req, res, next) => {
     }
 
     res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.getImages = async (req, res, next) => {
+  try {
+    const productId = parseInt(req.params.id, 10);
+    const images = await ProductImages.findByProductId(productId);
+    res.json(images);
   } catch (err) {
     next(err);
   }

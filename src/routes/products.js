@@ -9,6 +9,7 @@ const productImagesController = require('../controllers/productImagesController'
 
 // GET
 router.get('/', ctrl.getAll);
+router.get('/:id/images', productImagesController.getImages); 
 router.get('/:id', ctrl.getOne);
 
 // POST
@@ -36,6 +37,5 @@ router.post(
   upload.array('images', 5),
   productImagesController.upload
 );
-
 
 module.exports = router;

@@ -27,3 +27,31 @@ module.exports = {
       .orderBy('position');
   }
 };
+
+module.exports = {
+  async createMany(productId, files, body) {
+    const images = files.map((file, index) => ({
+      product_id: productId,
+      url: `/uploads/products/${file.filename}`,
+      alt_text: body.alt_text || null,
+      position: index,
+      is_primary: body.is_primary === 'true'
+    }));
+
+    return knex('product_images')
+      .insert(images)
+      .returning('*');
+  },
+
+  async findByProductId(productId) {
+    return knex('product_images')
+      .where({ product_id: productId })
+      .orderBy('position', 'asc');
+  },
+
+  async clearPrimary(productId) {
+      return knex('product_images')
+        .where({ product_id: productId })
+        .update({ is_primary: false });
+    },
+};
