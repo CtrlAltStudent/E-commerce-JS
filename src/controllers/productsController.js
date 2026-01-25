@@ -5,7 +5,13 @@ const ProductImages = require('../models/productImages');
 
 exports.getAll = async (req, res, next) => {
   try {
-    const rows = await Products.findAll(req.query);
+    const isAdmin = req.query.admin === '1';
+
+    const rows = await Products.findAll({
+      ...req.query,
+      includeInactive: isAdmin
+    });
+
     res.json(rows);
   } catch (err) {
     next(err);
@@ -75,3 +81,25 @@ exports.getImages = async (req, res, next) => {
     next(err);
   }
 };
+
+exports.getNewest = async (req, res, next) => {
+  try {
+    const limit = parseInt(req.query.limit || '5', 10);
+    const products = await Products.findNewest(limit);
+    res.json(products);
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.getPromotions = async (req, res, next) => {
+  try {
+    const products = await Products.findAll()
+    const promos = products.filter(p => p.is_promo)
+    res.json(promos)
+  } catch (err) {
+    next(err)
+  }
+};
+
+

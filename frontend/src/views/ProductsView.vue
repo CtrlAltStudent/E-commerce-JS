@@ -8,6 +8,38 @@
     <p v-if="loading">Loading...</p>
     <p v-if="error" style="color: red">{{ error }}</p>
 
+    <h2>Promocje</h2>
+
+    <ul v-if="promoProducts.length">
+      <li v-for="p in promoProducts" :key="p.id">
+        <strong>{{ p.name }}</strong><br />
+        <span style="text-decoration: line-through">
+          {{ p.price }} zł
+        </span>
+        →
+        <strong style="color:red">
+          {{ p.final_price }} zł
+        </strong>
+      </li>
+    </ul>
+
+    <hr />
+
+    <h2>Nowości</h2>
+
+    <p v-if="loadingNewest">Loading newest products...</p>
+
+    <ul v-if="newestProducts.length">
+      <li v-for="p in newestProducts" :key="p.id">
+        <strong>{{ p.name }}</strong>
+        — {{ p.price }} zł
+      </li>
+    </ul>
+
+    <hr />
+    <NewestProducts />
+
+
     <ul v-if="products.length">
       <li v-for="product in products" :key="product.id">
         <strong
@@ -42,6 +74,8 @@
 import { ref, onMounted } from 'vue'
 import { useCartStore } from '@/stores/cartStore'
 import CategoryMenu from '@/components/CategoryMenu.vue'
+import NewestProducts from '@/components/NewestProducts.vue'
+
 
 const cart = useCartStore()
 
@@ -51,6 +85,39 @@ const selectedCategory = ref(null)
 
 const loading = ref(false)
 const error = ref(null)
+
+const newestProducts = ref([])
+const loadingNewest = ref(false)
+
+const promoProducts = ref([])
+const loadingPromo = ref(false)
+
+const fetchNewest = async () => {
+  loadingNewest.value = true
+  try {
+    const res = await fetch(
+      `${import.meta.env.VITE_API_URL}/api/products/new?limit=4`
+    )
+    if (!res.ok) throw new Error('Failed to fetch newest products')
+    newestProducts.value = await res.json()
+  } catch (err) {
+    console.error(err)
+  } finally {
+    loadingNewest.value = false
+  }
+}
+
+const fetchPromotions = async () => {
+  loadingPromo.value = true
+  try {
+    const res = await fetch(
+      `${import.meta.env.VITE_API_URL}/api/products/promotions`
+    )
+    promoProducts.value = await res.json()
+  } finally {
+    loadingPromo.value = false
+  }
+}
 
 const fetchProducts = async () => {
   loading.value = true
@@ -90,5 +157,11 @@ const addToCart = (product) => {
   cart.addToCart(product, qty)
 }
 
-onMounted(fetchProducts)
+onMounted(() => {
+  fetchProducts()
+  fetchNewest()
+  fetchPromotions()
+})
+
+
 </script>
