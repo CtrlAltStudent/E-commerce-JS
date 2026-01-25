@@ -30,7 +30,9 @@ module.exports = {
   findAll(opts = {}) {
     const query = knex('categories')
       .select('id', 'name', 'description', 'parent_id', 'created_at', 'updated_at')
+      .where('is_active', true)
       .orderBy('id', 'asc');
+      
 
     if (opts.limit) query.limit(Number(opts.limit));
     if (opts.offset) query.offset(Number(opts.offset));

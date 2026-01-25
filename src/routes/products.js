@@ -8,8 +8,11 @@ const upload = require('../middleware/upload');
 const productImagesController = require('../controllers/productImagesController');
 
 // GET
+router.get('/newest', ctrl.getNewest);
 router.get('/', ctrl.getAll);
 router.get('/:id/images', productImagesController.getImages); 
+router.get('/new', ctrl.getNewest);
+router.get('/promotions', ctrl.getPromotions)
 router.get('/:id', ctrl.getOne);
 
 // POST
