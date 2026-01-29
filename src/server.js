@@ -17,6 +17,13 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+/* =======================
+   STATIC FILES (UPLOADS)
+======================= */
+app.use(
+  '/uploads',
+  express.static(path.join(__dirname, '..', 'uploads'))
+);
 
 /* =======================
    ROUTES

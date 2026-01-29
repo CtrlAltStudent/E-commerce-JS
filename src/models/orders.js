@@ -8,15 +8,17 @@ function generateOrderNumber() {
 }
 
 module.exports = {
+  // =========================
+  // CREATE ORDER
+  // =========================
   async create(items) {
-    return await knex.transaction(async (trx) => {
+    return knex.transaction(async (trx) => {
       const productIds = items.map(i => i.product_id);
 
       const products = await trx('products')
         .whereIn('id', productIds)
         .select('id', 'price', 'stock');
 
-      // 🔴 walidacja istnienia produktów
       if (products.length !== items.length) {
         throw new Error('One or more products not found');
       }
@@ -34,7 +36,6 @@ module.exports = {
           throw new Error('Quantity must be positive');
         }
 
-        // 🔴 sprawdzenie stanu magazynowego
         if (stock < qty) {
           throw new Error(`Insufficient stock for product ${i.product_id}`);
         }
@@ -50,7 +51,6 @@ module.exports = {
         };
       });
 
-      // 🔴 utworzenie zamówienia
       const [order] = await trx('orders')
         .insert({
           order_number: generateOrderNumber(),
@@ -59,7 +59,6 @@ module.exports = {
         })
         .returning('*');
 
-      // 🔴 zapis pozycji
       await trx('order_items').insert(
         pricedItems.map(pi => ({
           order_id: order.id,
@@ -67,7 +66,6 @@ module.exports = {
         }))
       );
 
-      // 🔴 aktualizacja stanów magazynowych
       for (const pi of pricedItems) {
         await trx('products')
           .where({ id: pi.product_id })
@@ -81,14 +79,64 @@ module.exports = {
     });
   },
 
+  // =========================
+  // GET ONE ORDER
+  // =========================
   async findById(id) {
     const order = await knex('orders').where({ id }).first();
     if (!order) return null;
 
     const items = await knex('order_items')
-      .where({ order_id: id })
-      .select('product_id', 'quantity', 'unit_price', 'line_total');
+      .join('products', 'order_items.product_id', 'products.id')
+      .where('order_items.order_id', id)
+      .select(
+        'products.name as product_name',
+        'order_items.quantity',
+        'order_items.unit_price',
+        'order_items.line_total'
+      );
 
     return { ...order, items };
+  },
+
+  // =========================
+  // GET ALL ORDERS (ADMIN)
+  // =========================
+  async findAll() {
+    const orders = await knex('orders')
+      .select(
+        'id',
+        'order_number',
+        'status',
+        'total',
+        'created_at'
+      )
+      .orderBy('created_at', 'desc');
+
+    for (const order of orders) {
+      order.items = await knex('order_items')
+        .join('products', 'order_items.product_id', 'products.id')
+        .where('order_items.order_id', order.id)
+        .select(
+          'products.name as product_name',
+          'order_items.quantity',
+          'order_items.unit_price',
+          'order_items.line_total'
+        );
+    }
+
+    return orders;
+  },
+
+  // =========================
+  // UPDATE STATUS (ADMIN)
+  // =========================
+  async updateStatus(id, status) {
+    const [row] = await knex('orders')
+      .where({ id })
+      .update({ status })
+      .returning('*');
+
+    return row || null;
   }
 };

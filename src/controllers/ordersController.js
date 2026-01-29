@@ -31,3 +31,42 @@ exports.getOne = async (req, res, next) => {
     next(err);
   }
 };
+
+exports.getAll = async (req, res, next) => {
+  try {
+    // tylko admin
+    if (!req.query.admin) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+
+    const orders = await Orders.findAll();
+    res.json(orders);
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.updateStatus = async (req, res, next) => {
+  try {
+    if (!req.query.admin) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+
+    const id = Number(req.params.id);
+    const { status } = req.body;
+
+    const allowed = ['Nowe', 'W realizacji', 'Wysłane', 'Anulowane'];
+    if (!allowed.includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+
+    const updated = await Orders.updateStatus(id, status);
+    if (!updated) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    res.json(updated);
+  } catch (err) {
+    next(err);
+  }
+};

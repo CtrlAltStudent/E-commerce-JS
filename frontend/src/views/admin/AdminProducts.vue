@@ -5,6 +5,10 @@
     <p v-if="loading">Loading...</p>
     <p v-if="error" style="color:red">{{ error }}</p>
 
+    <router-link to="/admin/products/new">
+      ➕ Dodaj produkt
+    </router-link>
+
     <table v-if="products.length" border="1" cellpadding="6">
       <thead>
         <tr>
@@ -24,7 +28,7 @@
           <td>{{ p.stock }}</td>
           <td>{{ p.is_active ? 'TAK' : 'NIE' }}</td>
           <td>
-            <!-- suwak aktywności -->
+            <!-- suwak -->
             <label class="switch">
               <input
                 type="checkbox"
@@ -34,7 +38,6 @@
               <span class="slider"></span>
             </label>
 
-            <!-- edycja -->
             <router-link
               :to="`/admin/products/${p.id}`"
               style="margin-left: 10px"
@@ -78,7 +81,7 @@ const fetchProducts = async () => {
 
 const toggleActive = async (product) => {
   try {
-    await fetch(`${apiUrl}/api/products/${product.id}`, {
+    await fetch(`${apiUrl}/api/products/${product.id}?admin=1`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -86,9 +89,9 @@ const toggleActive = async (product) => {
       })
     })
 
-    // lokalna aktualizacja – brak przestawiania kolejności
+    // lokalnie – bez zmiany kolejności
     product.is_active = !product.is_active
-  } catch (err) {
+  } catch {
     alert('Błąd przy zmianie statusu')
   }
 }
@@ -103,38 +106,30 @@ onMounted(fetchProducts)
   width: 46px;
   height: 24px;
 }
-
 .switch input {
   opacity: 0;
-  width: 0;
-  height: 0;
 }
-
 .slider {
   position: absolute;
-  cursor: pointer;
   inset: 0;
   background-color: #ccc;
-  transition: 0.3s;
   border-radius: 24px;
+  transition: 0.3s;
 }
-
 .slider::before {
-  position: absolute;
   content: "";
+  position: absolute;
   height: 18px;
   width: 18px;
   left: 3px;
   bottom: 3px;
-  background-color: white;
-  transition: 0.3s;
+  background: white;
   border-radius: 50%;
+  transition: 0.3s;
 }
-
 input:checked + .slider {
   background-color: #4caf50;
 }
-
 input:checked + .slider::before {
   transform: translateX(22px);
 }
