@@ -1,57 +1,45 @@
-const knex = require('../db/knex');
+const knex = require('../db/knex')
 
 module.exports = {
-  create: async ({
-    product_id,
-    url,
-    alt_text = null,
-    position = 0,
-    is_primary = false
-  }) => {
-    const [row] = await knex('product_images')
-      .insert({
-        product_id,
-        url,
-        alt_text,
-        position,
-        is_primary
-      })
-      .returning('*');
-
-    return row;
-  },
-
-  findByProduct: (productId) => {
-    return knex('product_images')
-      .where({ product_id: productId })
-      .orderBy('position');
-  }
-};
-
-module.exports = {
-  async createMany(productId, files, body) {
-    const images = files.map((file, index) => ({
-      product_id: productId,
-      url: `/uploads/products/${file.filename}`,
-      alt_text: body.alt_text || null,
-      position: index,
-      is_primary: body.is_primary === 'true'
-    }));
-
-    return knex('product_images')
-      .insert(images)
-      .returning('*');
-  },
-
   async findByProductId(productId) {
     return knex('product_images')
       .where({ product_id: productId })
-      .orderBy('position', 'asc');
+      .orderBy('position', 'asc')
+  },
+
+  async createMany(rows) {
+    if (!Array.isArray(rows) || rows.length === 0) {
+      throw new Error('No images to save')
+    }
+
+    const inserted = await knex('product_images')
+      .insert(rows)
+      .returning('*')
+
+    return inserted
   },
 
   async clearPrimary(productId) {
-      return knex('product_images')
-        .where({ product_id: productId })
-        .update({ is_primary: false });
-    },
-};
+    await knex('product_images')
+      .where({ product_id: productId })
+      .update({ is_primary: false })
+  },
+
+  async setPrimary(imageId) {
+    const img = await knex('product_images')
+      .where({ id: imageId })
+      .first()
+
+    if (!img) throw new Error('Image not found')
+
+    await knex('product_images')
+      .where({ product_id: img.product_id })
+      .update({ is_primary: false })
+
+    await knex('product_images')
+      .where({ id: imageId })
+      .update({ is_primary: true })
+
+    return true
+  }
+}

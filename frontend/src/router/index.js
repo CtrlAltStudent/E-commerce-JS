@@ -33,6 +33,7 @@ const router = createRouter({
     {
       path: '/admin',
       component: () => import('../views/admin/AdminDashboard.vue'),
+      redirect: '/admin/products',
       children: [
         {
           path: 'products',
@@ -44,8 +45,23 @@ const router = createRouter({
           name: 'admin-product-edit',
           component: () => import('../views/admin/AdminProductEdit.vue'),
         },
+        {
+          path: 'orders',
+          name: 'admin-orders',
+          component: () => import('../views/admin/AdminOrders.vue'),
+        },
+        {
+          path: 'products/new',
+          name: 'admin-product-new',
+          component: () => import('../views/admin/AdminProductForm.vue'),
+        },
+        {
+          path: 'products/:id/images',
+          name: 'admin-product-images',
+          component: () => import('../views/admin/AdminProductImages.vue'),
+        },
       ],
-    },
+    }
   ],
 })
 
